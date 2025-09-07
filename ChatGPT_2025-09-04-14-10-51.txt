@@ -1,0 +1,964 @@
+--------------------------------------
+User:
+
+
+This is a NET Framework 4.7+ class to upscale images with best quality. Can you add methods to sharpen image and adjust saturation?
+
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+
+public static class ImageScaler {
+    
+    public static void Scale(string inputFile, string outputFile, double scale = 2.0, int jpegQuality = 85) {
+        //try {
+            using (Bitmap original = new Bitmap(inputFile)) {
+                int newWidth = (int)(original.Width * scale);
+                int newHeight = (int)(original.Height * scale);
+                //Console.WriteLine($"{newWidth}x{newHeight}");
+                using (Bitmap resized = new Bitmap(newWidth, newHeight))
+                using (Graphics g = Graphics.FromImage(resized)) {
+                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    g.SmoothingMode = SmoothingMode.HighQuality;
+                    g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    g.CompositingQuality = CompositingQuality.HighQuality;
+                    g.DrawImage(original, 0, 0, newWidth, newHeight);
+                    ImageFormat format = GetImageFormatFromExtension(outputFile);
+                    if (format == ImageFormat.Jpeg) {
+                        SaveJpegWithQuality(resized, outputFile, jpegQuality);
+                    } else {
+                        resized.Save(outputFile, format);
+                    }
+                    Console.WriteLine($"Upscaled image saved to: {outputFile}");
+                }
+            }
+        //} catch (Exception ex) {
+        //    Console.WriteLine("Error processing image: " + ex.Message);
+        //}
+    }
+
+    private static ImageFormat GetImageFormatFromExtension(string filename) {
+        string ext = Path.GetExtension(filename).ToLowerInvariant();
+        return ext switch {
+            ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+            ".bmp" => ImageFormat.Bmp,
+            ".png" => ImageFormat.Png,
+            ".gif" => ImageFormat.Gif,
+            _ => throw new NotSupportedException("Unsupported output file format: " + ext)
+        };
+    }
+
+    private static void SaveJpegWithQuality(Image image, string outputPath, int quality) {
+        ImageCodecInfo jpegCodec = ImageCodecInfo.GetImageEncoders()
+            .FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
+        if (jpegCodec == null) {
+            throw new InvalidOperationException("JPEG encoder not found.");
+        }
+        EncoderParameters encoderParams = new EncoderParameters(1);
+        encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+        image.Save(outputPath, jpegCodec, encoderParams);
+    }
+}
+--------------------------------------
+ChatGPT:
+
+
+Absolutely! Since you want sharpening and saturation adjustment in .NET Framework 4.7+, we can implement them using convolution for sharpening and ColorMatrix for saturation. I’ve integrated two new methods: Sharpen and AdjustSaturation. You can chain them before saving or scaling. Here's the updated class:
+
+csharp
+Copy code
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+
+public static class ImageScaler {
+
+    public static void Scale(string inputFile, string outputFile, double scale = 2.0, int jpegQuality = 85, bool sharpen = false, float saturation = 1f) {
+        using (Bitmap original = new Bitmap(inputFile)) {
+            Bitmap processed = (Bitmap)original.Clone();
+
+            if (sharpen) {
+                processed = Sharpen(processed);
+            }
+
+            if (Math.Abs(saturation - 1f) > 0.01f) {
+                processed = AdjustSaturation(processed, saturation);
+            }
+
+            int newWidth = (int)(processed.Width * scale);
+            int newHeight = (int)(processed.Height * scale);
+
+            using (Bitmap resized = new Bitmap(newWidth, newHeight))
+            using (Graphics g = Graphics.FromImage(resized)) {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.CompositingQuality = CompositingQuality.HighQuality;
+                g.DrawImage(processed, 0, 0, newWidth, newHeight);
+
+                ImageFormat format = GetImageFormatFromExtension(outputFile);
+                if (format == ImageFormat.Jpeg) {
+                    SaveJpegWithQuality(resized, outputFile, jpegQuality);
+                } else {
+                    resized.Save(outputFile, format);
+                }
+                Console.WriteLine($"Upscaled image saved to: {outputFile}");
+            }
+
+            processed.Dispose();
+        }
+    }
+
+    private static ImageFormat GetImageFormatFromExtension(string filename) {
+        string ext = Path.GetExtension(filename).ToLowerInvariant();
+        return ext switch {
+            ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+            ".bmp" => ImageFormat.Bmp,
+            ".png" => ImageFormat.Png,
+            ".gif" => ImageFormat.Gif,
+            _ => throw new NotSupportedException("Unsupported output file format: " + ext)
+        };
+    }
+
+    private static void SaveJpegWithQuality(Image image, string outputPath, int quality) {
+        ImageCodecInfo jpegCodec = ImageCodecInfo.GetImageEncoders()
+            .FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
+        if (jpegCodec == null) {
+            throw new InvalidOperationException("JPEG encoder not found.");
+        }
+        EncoderParameters encoderParams = new EncoderParameters(1);
+        encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+        image.Save(outputPath, jpegCodec, encoderParams);
+    }
+
+    // -------------------- New Methods --------------------
+
+    public static Bitmap Sharpen(Bitmap image) {
+        // Simple 3x3 sharpening kernel
+        float[,] kernel = {
+            { -1, -1, -1 },
+            { -1,  9, -1 },
+            { -1, -1, -1 }
+        };
+        return Convolution(image, kernel);
+    }
+
+    public static Bitmap AdjustSaturation(Bitmap image, float saturation) {
+        if (image == null) throw new ArgumentNullException(nameof(image));
+
+        float lumR = 0.3086f;
+        float lumG = 0.6094f;
+        float lumB = 0.0820f;
+
+        float sr = (1 - saturation) * lumR + saturation;
+        float sg = (1 - saturation) * lumG;
+        float sb = (1 - saturation) * lumB;
+
+        float gr = (1 - saturation) * lumR;
+        float gg = (1 - saturation) * lumG + saturation;
+        float gb = (1 - saturation) * lumB;
+
+        float br = (1 - saturation) * lumR;
+        float bg = (1 - saturation) * lumG;
+        float bb = (1 - saturation) * lumB + saturation;
+
+        ColorMatrix cm = new ColorMatrix(new float[][] {
+            new float[]{ sr, sg, sb, 0, 0 },
+            new float[]{ gr, gg, gb, 0, 0 },
+            new float[]{ br, bg, bb, 0, 0 },
+            new float[]{ 0,  0,  0, 1, 0 },
+            new float[]{ 0,  0,  0, 0, 1 }
+        });
+
+        Bitmap result = new Bitmap(image.Width, image.Height);
+        using (Graphics g = Graphics.FromImage(result)) {
+            ImageAttributes attributes = new ImageAttributes();
+            attributes.SetColorMatrix(cm);
+            g.DrawImage(image, new Rectangle(0, 0, image.Width, image.Height),
+                0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
+        }
+        return result;
+    }
+
+    private static Bitmap Convolution(Bitmap source, float[,] kernel) {
+        Bitmap result = new Bitmap(source.Width, source.Height);
+
+        int width = source.Width;
+        int height = source.Height;
+        int kCenter = kernel.GetLength(0) / 2;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                float r = 0, g = 0, b = 0;
+
+                for (int ky = 0; ky < kernel.GetLength(0); ky++) {
+                    int py = y + ky - kCenter;
+                    py = Math.Min(height - 1, Math.Max(0, py));
+
+                    for (int kx = 0; kx < kernel.GetLength(1); kx++) {
+                        int px = x + kx - kCenter;
+                        px = Math.Min(width - 1, Math.Max(0, px));
+
+                        Color pixel = source.GetPixel(px, py);
+                        float k = kernel[ky, kx];
+                        r += pixel.R * k;
+                        g += pixel.G * k;
+                        b += pixel.B * k;
+                    }
+                }
+
+                int ir = Math.Min(255, Math.Max(0, (int)r));
+                int ig = Math.Min(255, Math.Max(0, (int)g));
+                int ib = Math.Min(255, Math.Max(0, (int)b));
+
+                result.SetPixel(x, y, Color.FromArgb(ir, ig, ib));
+            }
+        }
+
+        return result;
+    }
+}
+
+
+✅ Usage example:
+
+csharp
+Copy code
+ImageScaler.Scale("input.jpg", "output.jpg", scale: 2.0, jpegQuality: 90, sharpen: true, saturation: 1.2f);
+
+
+sharpen: true applies a basic 3x3 sharpen filter.
+
+saturation: 1.2f boosts colors by 20%. Use <1 to desaturate.
+
+I used GetPixel/SetPixel for simplicity; for large images, locking bits is faster.
+
+If you want, I can rewrite Sharpen to use LockBits, which makes it much faster for high-resolution images. Do you want me to do that?
+--------------------------------------
+User:
+
+
+sure
+--------------------------------------
+ChatGPT:
+
+
+Perfect! Using LockBits is much faster than GetPixel/SetPixel, especially for large images. Here’s an optimized version of the Sharpen method (and the Convolution helper) using LockBits:
+
+csharp
+Copy code
+public static Bitmap Sharpen(Bitmap source) {
+    float[,] kernel = {
+        { -1, -1, -1 },
+        { -1,  9, -1 },
+        { -1, -1, -1 }
+    };
+    return ConvolutionLockBits(source, kernel);
+}
+
+private static Bitmap ConvolutionLockBits(Bitmap source, float[,] kernel) {
+    int width = source.Width;
+    int height = source.Height;
+    Bitmap result = new Bitmap(width, height, source.PixelFormat);
+
+    BitmapData srcData = source.LockBits(new Rectangle(0, 0, width, height),
+        ImageLockMode.ReadOnly, source.PixelFormat);
+    BitmapData dstData = result.LockBits(new Rectangle(0, 0, width, height),
+        ImageLockMode.WriteOnly, source.PixelFormat);
+
+    int bytesPerPixel = Image.GetPixelFormatSize(source.PixelFormat) / 8;
+    int stride = srcData.Stride;
+    byte[] buffer = new byte[stride * height];
+    byte[] resultBuffer = new byte[stride * height];
+
+    System.Runtime.InteropServices.Marshal.Copy(srcData.Scan0, buffer, 0, buffer.Length);
+
+    int kCenter = kernel.GetLength(0) / 2;
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            float r = 0, g = 0, b = 0;
+
+            for (int ky = 0; ky < kernel.GetLength(0); ky++) {
+                int py = y + ky - kCenter;
+                py = Math.Min(height - 1, Math.Max(0, py));
+
+                for (int kx = 0; kx < kernel.GetLength(1); kx++) {
+                    int px = x + kx - kCenter;
+                    px = Math.Min(width - 1, Math.Max(0, px));
+
+                    int idx = py * stride + px * bytesPerPixel;
+                    float k = kernel[ky, kx];
+
+                    b += buffer[idx + 0] * k;
+                    g += buffer[idx + 1] * k;
+                    r += buffer[idx + 2] * k;
+                }
+            }
+
+            int dstIdx = y * stride + x * bytesPerPixel;
+            resultBuffer[dstIdx + 0] = (byte)Math.Min(255, Math.Max(0, (int)b));
+            resultBuffer[dstIdx + 1] = (byte)Math.Min(255, Math.Max(0, (int)g));
+            resultBuffer[dstIdx + 2] = (byte)Math.Min(255, Math.Max(0, (int)r));
+
+            if (bytesPerPixel == 4) { // preserve alpha if present
+                resultBuffer[dstIdx + 3] = buffer[dstIdx + 3];
+            }
+        }
+    }
+
+    System.Runtime.InteropServices.Marshal.Copy(resultBuffer, 0, dstData.Scan0, resultBuffer.Length);
+    source.UnlockBits(srcData);
+    result.UnlockBits(dstData);
+
+    return result;
+}
+
+✅ Notes:
+
+This works for 24bppRgb and 32bppArgb images.
+
+It’s much faster than GetPixel/SetPixel for large images.
+
+Alpha channel (transparency) is preserved if the image is 32bpp.
+
+You can now just call Sharpen as before:
+
+csharp
+Copy code
+Bitmap sharpened = ImageScaler.Sharpen(originalBitmap);
+
+
+If you want, I can also optimize AdjustSaturation using LockBits for even faster performance, so both operations can be applied quickly to huge images. Do you want me to do that too?
+--------------------------------------
+User:
+
+
+yes
+--------------------------------------
+ChatGPT:
+
+
+Great! We can optimize saturation adjustment using LockBits, just like we did for sharpening. Here’s a high-performance version that works for 24bpp and 32bpp images:
+
+csharp
+Copy code
+public static Bitmap AdjustSaturationFast(Bitmap source, float saturation) {
+    if (source == null) throw new ArgumentNullException(nameof(source));
+
+    int width = source.Width;
+    int height = source.Height;
+    Bitmap result = new Bitmap(width, height, source.PixelFormat);
+
+    BitmapData srcData = source.LockBits(new Rectangle(0, 0, width, height),
+        ImageLockMode.ReadOnly, source.PixelFormat);
+    BitmapData dstData = result.LockBits(new Rectangle(0, 0, width, height),
+        ImageLockMode.WriteOnly, source.PixelFormat);
+
+    int bytesPerPixel = Image.GetPixelFormatSize(source.PixelFormat) / 8;
+    int stride = srcData.Stride;
+    byte[] buffer = new byte[stride * height];
+    byte[] resultBuffer = new byte[stride * height];
+    System.Runtime.InteropServices.Marshal.Copy(srcData.Scan0, buffer, 0, buffer.Length);
+
+    float lumR = 0.3086f;
+    float lumG = 0.6094f;
+    float lumB = 0.0820f;
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int idx = y * stride + x * bytesPerPixel;
+            float b = buffer[idx + 0] / 255f;
+            float g = buffer[idx + 1] / 255f;
+            float r = buffer[idx + 2] / 255f;
+
+            // luminance
+            float lum = r * lumR + g * lumG + b * lumB;
+
+            // apply saturation
+            r = lum + (r - lum) * saturation;
+            g = lum + (g - lum) * saturation;
+            b = lum + (b - lum) * saturation;
+
+            resultBuffer[idx + 0] = (byte)Math.Min(255, Math.Max(0, (int)(b * 255)));
+            resultBuffer[idx + 1] = (byte)Math.Min(255, Math.Max(0, (int)(g * 255)));
+            resultBuffer[idx + 2] = (byte)Math.Min(255, Math.Max(0, (int)(r * 255)));
+
+            if (bytesPerPixel == 4) { // preserve alpha
+                resultBuffer[idx + 3] = buffer[idx + 3];
+            }
+        }
+    }
+
+    System.Runtime.InteropServices.Marshal.Copy(resultBuffer, 0, dstData.Scan0, resultBuffer.Length);
+    source.UnlockBits(srcData);
+    result.UnlockBits(dstData);
+
+    return result;
+}
+
+✅ Usage example:
+csharp
+Copy code
+Bitmap adjusted = ImageScaler.AdjustSaturationFast(originalBitmap, 1.3f); // +30% saturation
+
+
+Now you have fast sharpening and fast saturation adjustment that work with large images efficiently.
+
+If you want, I can integrate both LockBits-based methods directly into your Scale method, so you can just call Scale(..., sharpen:true, saturation:1.2f) and it will apply both quickly without creating intermediate copies. Do you want me to do that?
+--------------------------------------
+User:
+
+
+yes, but make them optional.
+regenerate entire class
+--------------------------------------
+ChatGPT:
+
+
+Absolutely! Here’s the fully regenerated ImageScaler class for .NET Framework 4.7+, with optional sharpening and saturation adjustment, using LockBits for high performance:
+
+csharp
+Copy code
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+
+public static class ImageScaler {
+
+    /// <summary>
+    /// Scales an image with high-quality resampling, optional sharpening and saturation adjustment.
+    /// </summary>
+    public static void Scale(string inputFile, string outputFile, double scale = 2.0, int jpegQuality = 85, bool sharpen = false, float saturation = 1f) {
+        using (Bitmap original = new Bitmap(inputFile)) {
+            Bitmap processed = (Bitmap)original.Clone();
+
+            if (sharpen) {
+                Bitmap temp = Sharpen(processed);
+                processed.Dispose();
+                processed = temp;
+            }
+
+            if (Math.Abs(saturation - 1f) > 0.01f) {
+                Bitmap temp = AdjustSaturation(processed, saturation);
+                processed.Dispose();
+                processed = temp;
+            }
+
+            int newWidth = (int)(processed.Width * scale);
+            int newHeight = (int)(processed.Height * scale);
+
+            using (Bitmap resized = new Bitmap(newWidth, newHeight))
+            using (Graphics g = Graphics.FromImage(resized)) {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.CompositingQuality = CompositingQuality.HighQuality;
+                g.DrawImage(processed, 0, 0, newWidth, newHeight);
+
+                ImageFormat format = GetImageFormatFromExtension(outputFile);
+                if (format == ImageFormat.Jpeg) {
+                    SaveJpegWithQuality(resized, outputFile, jpegQuality);
+                } else {
+                    resized.Save(outputFile, format);
+                }
+                Console.WriteLine($"Upscaled image saved to: {outputFile}");
+            }
+
+            processed.Dispose();
+        }
+    }
+
+    private static ImageFormat GetImageFormatFromExtension(string filename) {
+        string ext = Path.GetExtension(filename).ToLowerInvariant();
+        return ext switch {
+            ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+            ".bmp" => ImageFormat.Bmp,
+            ".png" => ImageFormat.Png,
+            ".gif" => ImageFormat.Gif,
+            _ => throw new NotSupportedException("Unsupported output file format: " + ext)
+        };
+    }
+
+    private static void SaveJpegWithQuality(Image image, string outputPath, int quality) {
+        ImageCodecInfo jpegCodec = ImageCodecInfo.GetImageEncoders()
+            .FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
+        if (jpegCodec == null) {
+            throw new InvalidOperationException("JPEG encoder not found.");
+        }
+        EncoderParameters encoderParams = new EncoderParameters(1);
+        encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+        image.Save(outputPath, jpegCodec, encoderParams);
+    }
+
+    // -------------------- Sharpening --------------------
+
+    public static Bitmap Sharpen(Bitmap source) {
+        float[,] kernel = {
+            { -1, -1, -1 },
+            { -1,  9, -1 },
+            { -1, -1, -1 }
+        };
+        return ConvolutionLockBits(source, kernel);
+    }
+
+    private static Bitmap ConvolutionLockBits(Bitmap source, float[,] kernel) {
+        int width = source.Width;
+        int height = source.Height;
+        Bitmap result = new Bitmap(width, height, source.PixelFormat);
+
+        BitmapData srcData = source.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.ReadOnly, source.PixelFormat);
+        BitmapData dstData = result.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.WriteOnly, source.PixelFormat);
+
+        int bytesPerPixel = Image.GetPixelFormatSize(source.PixelFormat) / 8;
+        int stride = srcData.Stride;
+        byte[] buffer = new byte[stride * height];
+        byte[] resultBuffer = new byte[stride * height];
+        System.Runtime.InteropServices.Marshal.Copy(srcData.Scan0, buffer, 0, buffer.Length);
+
+        int kCenter = kernel.GetLength(0) / 2;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                float r = 0, g = 0, b = 0;
+
+                for (int ky = 0; ky < kernel.GetLength(0); ky++) {
+                    int py = Math.Min(height - 1, Math.Max(0, y + ky - kCenter));
+
+                    for (int kx = 0; kx < kernel.GetLength(1); kx++) {
+                        int px = Math.Min(width - 1, Math.Max(0, x + kx - kCenter));
+
+                        int idx = py * stride + px * bytesPerPixel;
+                        float k = kernel[ky, kx];
+
+                        b += buffer[idx + 0] * k;
+                        g += buffer[idx + 1] * k;
+                        r += buffer[idx + 2] * k;
+                    }
+                }
+
+                int dstIdx = y * stride + x * bytesPerPixel;
+                resultBuffer[dstIdx + 0] = (byte)Math.Min(255, Math.Max(0, (int)b));
+                resultBuffer[dstIdx + 1] = (byte)Math.Min(255, Math.Max(0, (int)g));
+                resultBuffer[dstIdx + 2] = (byte)Math.Min(255, Math.Max(0, (int)r));
+
+                if (bytesPerPixel == 4) {
+                    resultBuffer[dstIdx + 3] = buffer[dstIdx + 3]; // preserve alpha
+                }
+            }
+        }
+
+        System.Runtime.InteropServices.Marshal.Copy(resultBuffer, 0, dstData.Scan0, resultBuffer.Length);
+        source.UnlockBits(srcData);
+        result.UnlockBits(dstData);
+
+        return result;
+    }
+
+    // -------------------- Saturation --------------------
+
+    public static Bitmap AdjustSaturation(Bitmap source, float saturation) {
+        int width = source.Width;
+        int height = source.Height;
+        Bitmap result = new Bitmap(width, height, source.PixelFormat);
+
+        BitmapData srcData = source.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.ReadOnly, source.PixelFormat);
+        BitmapData dstData = result.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.WriteOnly, source.PixelFormat);
+
+        int bytesPerPixel = Image.GetPixelFormatSize(source.PixelFormat) / 8;
+        int stride = srcData.Stride;
+        byte[] buffer = new byte[stride * height];
+        byte[] resultBuffer = new byte[stride * height];
+        System.Runtime.InteropServices.Marshal.Copy(srcData.Scan0, buffer, 0, buffer.Length);
+
+        float lumR = 0.3086f;
+        float lumG = 0.6094f;
+        float lumB = 0.0820f;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int idx = y * stride + x * bytesPerPixel;
+                float b = buffer[idx + 0] / 255f;
+                float g = buffer[idx + 1] / 255f;
+                float r = buffer[idx + 2] / 255f;
+
+                float lum = r * lumR + g * lumG + b * lumB;
+
+                r = lum + (r - lum) * saturation;
+                g = lum + (g - lum) * saturation;
+                b = lum + (b - lum) * saturation;
+
+                resultBuffer[idx + 0] = (byte)Math.Min(255, Math.Max(0, (int)(b * 255)));
+                resultBuffer[idx + 1] = (byte)Math.Min(255, Math.Max(0, (int)(g * 255)));
+                resultBuffer[idx + 2] = (byte)Math.Min(255, Math.Max(0, (int)(r * 255)));
+
+                if (bytesPerPixel == 4) {
+                    resultBuffer[idx + 3] = buffer[idx + 3]; // preserve alpha
+                }
+            }
+        }
+
+        System.Runtime.InteropServices.Marshal.Copy(resultBuffer, 0, dstData.Scan0, resultBuffer.Length);
+        source.UnlockBits(srcData);
+        result.UnlockBits(dstData);
+
+        return result;
+    }
+}
+
+✅ Features:
+
+High-quality scaling using HighQualityBicubic.
+
+Optional sharpening (sharpen: true) using fast LockBits convolution.
+
+Optional saturation adjustment (saturation: 1.0 = original, >1 = boost, <1 = desaturate).
+
+Works with 24bppRgb and 32bppArgb images.
+
+Preserves alpha for 32bpp images.
+
+Supports JPEG, PNG, BMP, GIF output with custom JPEG quality.
+
+Example usage:
+csharp
+Copy code
+ImageScaler.Scale("input.jpg", "output.jpg", scale: 2.0, jpegQuality: 90, sharpen: true, saturation: 1.3f);
+
+
+This will upscale 2x, sharpen the image, and increase saturation by 30%.
+
+If you want, I can also add optional parameters for contrast and brightness, so the class can be a full-featured high-quality image enhancer in one call. Do you want me to do that?
+--------------------------------------
+User:
+
+
+yes
+and add can you make sharpening adjustable? and can you add a mirror method?
+--------------------------------------
+ChatGPT:
+
+
+Absolutely! We can extend the class with:
+
+Adjustable sharpening — pass a float strength parameter.
+
+Mirror method — horizontally or vertically flip the image.
+
+Optional brightness and contrast adjustment — via parameters.
+
+Here’s the fully regenerated class with all requested features:
+
+csharp
+Copy code
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+
+public static class ImageScaler {
+
+    /// <summary>
+    /// Scales an image with high-quality resampling and optional enhancements.
+    /// </summary>
+    public static void Scale(
+        string inputFile,
+        string outputFile,
+        double scale = 2.0,
+        int jpegQuality = 85,
+        bool sharpen = false,
+        float sharpenStrength = 1.0f,
+        float saturation = 1f,
+        float brightness = 0f,  // -1..1
+        float contrast = 0f,    // -1..1
+        bool mirrorHorizontal = false,
+        bool mirrorVertical = false
+    ) {
+        using (Bitmap original = new Bitmap(inputFile)) {
+            Bitmap processed = (Bitmap)original.Clone();
+
+            // Sharpen
+            if (sharpen && Math.Abs(sharpenStrength) > 0.01f) {
+                Bitmap temp = Sharpen(processed, sharpenStrength);
+                processed.Dispose();
+                processed = temp;
+            }
+
+            // Saturation
+            if (Math.Abs(saturation - 1f) > 0.01f) {
+                Bitmap temp = AdjustSaturation(processed, saturation);
+                processed.Dispose();
+                processed = temp;
+            }
+
+            // Brightness/Contrast
+            if (Math.Abs(brightness) > 0.01f || Math.Abs(contrast) > 0.01f) {
+                Bitmap temp = AdjustBrightnessContrast(processed, brightness, contrast);
+                processed.Dispose();
+                processed = temp;
+            }
+
+            // Mirror
+            if (mirrorHorizontal) processed.RotateFlip(RotateFlipType.RotateNoneFlipX);
+            if (mirrorVertical) processed.RotateFlip(RotateFlipType.RotateNoneFlipY);
+
+            // Scale
+            int newWidth = (int)(processed.Width * scale);
+            int newHeight = (int)(processed.Height * scale);
+
+            using (Bitmap resized = new Bitmap(newWidth, newHeight))
+            using (Graphics g = Graphics.FromImage(resized)) {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.CompositingQuality = CompositingQuality.HighQuality;
+                g.DrawImage(processed, 0, 0, newWidth, newHeight);
+
+                ImageFormat format = GetImageFormatFromExtension(outputFile);
+                if (format == ImageFormat.Jpeg) {
+                    SaveJpegWithQuality(resized, outputFile, jpegQuality);
+                } else {
+                    resized.Save(outputFile, format);
+                }
+                Console.WriteLine($"Processed image saved to: {outputFile}");
+            }
+
+            processed.Dispose();
+        }
+    }
+
+    private static ImageFormat GetImageFormatFromExtension(string filename) {
+        string ext = Path.GetExtension(filename).ToLowerInvariant();
+        return ext switch {
+            ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+            ".bmp" => ImageFormat.Bmp,
+            ".png" => ImageFormat.Png,
+            ".gif" => ImageFormat.Gif,
+            _ => throw new NotSupportedException("Unsupported output file format: " + ext)
+        };
+    }
+
+    private static void SaveJpegWithQuality(Image image, string outputPath, int quality) {
+        ImageCodecInfo jpegCodec = ImageCodecInfo.GetImageEncoders()
+            .FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
+        if (jpegCodec == null) throw new InvalidOperationException("JPEG encoder not found.");
+        EncoderParameters encoderParams = new EncoderParameters(1);
+        encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+        image.Save(outputPath, jpegCodec, encoderParams);
+    }
+
+    // -------------------- Sharpen --------------------
+    public static Bitmap Sharpen(Bitmap source, float strength = 1.0f) {
+        float[,] baseKernel = {
+            { -1, -1, -1 },
+            { -1,  9, -1 },
+            { -1, -1, -1 }
+        };
+
+        // Scale kernel by strength
+        float[,] kernel = new float[3, 3];
+        for (int y = 0; y < 3; y++)
+            for (int x = 0; x < 3; x++)
+                kernel[y, x] = baseKernel[y, x] * strength;
+
+        return ConvolutionLockBits(source, kernel);
+    }
+
+    private static Bitmap ConvolutionLockBits(Bitmap source, float[,] kernel) {
+        int width = source.Width;
+        int height = source.Height;
+        Bitmap result = new Bitmap(width, height, source.PixelFormat);
+
+        BitmapData srcData = source.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.ReadOnly, source.PixelFormat);
+        BitmapData dstData = result.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.WriteOnly, source.PixelFormat);
+
+        int bytesPerPixel = Image.GetPixelFormatSize(source.PixelFormat) / 8;
+        int stride = srcData.Stride;
+        byte[] buffer = new byte[stride * height];
+        byte[] resultBuffer = new byte[stride * height];
+        System.Runtime.InteropServices.Marshal.Copy(srcData.Scan0, buffer, 0, buffer.Length);
+
+        int kCenter = kernel.GetLength(0) / 2;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                float r = 0, g = 0, b = 0;
+                for (int ky = 0; ky < kernel.GetLength(0); ky++) {
+                    int py = Math.Min(height - 1, Math.Max(0, y + ky - kCenter));
+                    for (int kx = 0; kx < kernel.GetLength(1); kx++) {
+                        int px = Math.Min(width - 1, Math.Max(0, x + kx - kCenter));
+                        int idx = py * stride + px * bytesPerPixel;
+                        float k = kernel[ky, kx];
+                        b += buffer[idx + 0] * k;
+                        g += buffer[idx + 1] * k;
+                        r += buffer[idx + 2] * k;
+                    }
+                }
+
+                int dstIdx = y * stride + x * bytesPerPixel;
+                resultBuffer[dstIdx + 0] = (byte)Math.Min(255, Math.Max(0, (int)b));
+                resultBuffer[dstIdx + 1] = (byte)Math.Min(255, Math.Max(0, (int)g));
+                resultBuffer[dstIdx + 2] = (byte)Math.Min(255, Math.Max(0, (int)r));
+                if (bytesPerPixel == 4) resultBuffer[dstIdx + 3] = buffer[dstIdx + 3]; // alpha
+            }
+        }
+
+        System.Runtime.InteropServices.Marshal.Copy(resultBuffer, 0, dstData.Scan0, resultBuffer.Length);
+        source.UnlockBits(srcData);
+        result.UnlockBits(dstData);
+
+        return result;
+    }
+
+    // -------------------- Saturation --------------------
+    public static Bitmap AdjustSaturation(Bitmap source, float saturation) {
+        int width = source.Width;
+        int height = source.Height;
+        Bitmap result = new Bitmap(width, height, source.PixelFormat);
+
+        BitmapData srcData = source.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.ReadOnly, source.PixelFormat);
+        BitmapData dstData = result.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.WriteOnly, source.PixelFormat);
+
+        int bytesPerPixel = Image.GetPixelFormatSize(source.PixelFormat) / 8;
+        int stride = srcData.Stride;
+        byte[] buffer = new byte[stride * height];
+        byte[] resultBuffer = new byte[stride * height];
+        System.Runtime.InteropServices.Marshal.Copy(srcData.Scan0, buffer, 0, buffer.Length);
+
+        float lumR = 0.3086f;
+        float lumG = 0.6094f;
+        float lumB = 0.0820f;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int idx = y * stride + x * bytesPerPixel;
+                float b = buffer[idx + 0] / 255f;
+                float g = buffer[idx + 1] / 255f;
+                float r = buffer[idx + 2] / 255f;
+
+                float lum = r * lumR + g * lumG + b * lumB;
+                r = lum + (r - lum) * saturation;
+                g = lum + (g - lum) * saturation;
+                b = lum + (b - lum) * saturation;
+
+                resultBuffer[idx + 0] = (byte)Math.Min(255, Math.Max(0, (int)(b * 255)));
+                resultBuffer[idx + 1] = (byte)Math.Min(255, Math.Max(0, (int)(g * 255)));
+                resultBuffer[idx + 2] = (byte)Math.Min(255, Math.Max(0, (int)(r * 255)));
+                if (bytesPerPixel == 4) resultBuffer[idx + 3] = buffer[idx + 3]; // alpha
+            }
+        }
+
+        System.Runtime.InteropServices.Marshal.Copy(resultBuffer, 0, dstData.Scan0, resultBuffer.Length);
+        source.UnlockBits(srcData);
+        result.UnlockBits(dstData);
+
+        return result;
+    }
+
+    // -------------------- Brightness/Contrast --------------------
+    public static Bitmap AdjustBrightnessContrast(Bitmap source, float brightness = 0f, float contrast = 0f) {
+        int width = source.Width;
+        int height = source.Height;
+        Bitmap result = new Bitmap(width, height, source.PixelFormat);
+
+        BitmapData srcData = source.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.ReadOnly, source.PixelFormat);
+        BitmapData dstData = result.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.WriteOnly, source.PixelFormat);
+
+        int bytesPerPixel = Image.GetPixelFormatSize(source.PixelFormat) / 8;
+        int stride = srcData.Stride;
+        byte[] buffer = new byte[stride * height];
+        byte[] resultBuffer = new byte[stride * height];
+        System.Runtime.InteropServices.Marshal.Copy(srcData.Scan0, buffer, 0, buffer.Length);
+
+        float c = 1f + contrast;
+        float b = brightness * 255f;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int idx = y * stride + x * bytesPerPixel;
+                for (int i = 0; i < 3; i++) {
+                    float val = buffer[idx + i] * c + b;
+                    resultBuffer[idx + i] = (byte)Math.Min(255, Math.Max(0, (int)val));
+                }
+                if (bytesPerPixel == 4) resultBuffer[idx + 3] = buffer[idx + 3]; // alpha
+            }
+        }
+
+        System.Runtime.InteropServices.Marshal.Copy(resultBuffer, 0, dstData.Scan0, resultBuffer.Length);
+        source.UnlockBits(srcData);
+        result.UnlockBits(dstData);
+
+        return result;
+    }
+}
+
+✅ New Features Summary:
+
+Sharpening with adjustable strength (sharpenStrength)
+
+Saturation adjustment (saturation)
+
+Brightness/Contrast adjustment (brightness, contrast)
+
+Mirror (horizontal and vertical)
+
+High-quality scaling
+
+Optional JPEG quality
+
+Example Usage:
+csharp
+Copy code
+ImageScaler.Scale(
+    "input.jpg",
+    "output.jpg",
+    scale: 2.0,
+    jpegQuality: 90,
+    sharpen: true,
+    sharpenStrength: 1.5f,
+    saturation: 1.2f,
+    brightness: 0.1f,
+    contrast: 0.2f,
+    mirrorHorizontal: true
+);
+
+
+This will:
+
+Upscale 2×
+
+Sharpen (50% stronger)
+
+Increase saturation 20%
+
+Increase brightness 10%
+
+Increase contrast 20%
+
+Mirror horizontally
+
+I can also add a vertical flip + rotate options, making it fully equivalent to RotateFlipType customization if you want full flexibility.
+
+Do you want me to add that?
+--------------------------------------

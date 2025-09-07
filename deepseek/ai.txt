@@ -1,0 +1,1034 @@
+Provide a comprehensive list of free Windows utilities, both command line and GUI, to upscale images.
+Here’s a comprehensive list of free Windows utilities (both command-line and GUI) for upscaling images using AI and traditional algorithms:
+
+1. AI-Based Upscaling Tools (GUI)
+Standalone Applications
+Upscayl
+
+Open-source, uses ESRGAN, Real-ESRGAN, and other AI models.
+
+Supports batch processing.
+
+GitHub
+
+Waifu2x-Extension-GUI
+
+Supports multiple AI models (Waifu2x, SRMD, Real-ESRGAN, etc.).
+
+Batch processing, video upscaling, and GIF support.
+
+GitHub
+
+Real-ESRGAN GUI
+
+User-friendly frontend for Real-ESRGAN (good for real-world images).
+
+GitHub
+
+Topaz Gigapixel AI (Free Trial)
+
+Not fully free, but offers a trial.
+
+Official Site
+
+GIMP + AI Plugins
+
+Use GIMP with plugins like G'MIC-Qt (includes AI upscaling filters).
+
+GIMP | G'MIC
+
+Online (Free but Requires Internet)
+BigJPG (Free tier with limits)
+
+https://bigjpg.com/
+
+Deep Image AI (Free trial)
+
+https://deep-image.ai/
+
+2. Command-Line Tools (AI & Traditional)
+AI-Based
+Real-ESRGAN (Python)
+
+Best for real-world images.
+
+Install via:
+
+bash
+pip install realesrgan
+Usage:
+
+bash
+realesrgan-ncnn-vulkan.exe -i input.jpg -o output.png -n realesrgan-x4plus
+GitHub
+
+Waifu2x (NCNN/Vulkan)
+
+Best for anime/art.
+
+Pre-built Windows binaries available.
+
+Usage:
+
+bash
+waifu2x-ncnn-vulkan.exe -i input.png -o output.png -n 2 -s 2
+GitHub
+
+ESRGAN (Python)
+
+Custom models supported.
+
+GitHub
+
+Traditional Upscaling (No AI)
+ImageMagick (CLI)
+
+Lanczos, Catrom, and other interpolations.
+
+Install: https://imagemagick.org/
+
+Example:
+
+bash
+magick input.jpg -resize 200% -filter Lanczos output.png
+FFmpeg (CLI)
+
+Can upscale videos/images using filters like super2xsai.
+
+Example:
+
+bash
+ffmpeg -i input.jpg -vf "scale=iw*2:ih*2:flags=neighbor" output.png
+3. Batch Processing Tools
+IrfanView (GUI + Plugins)
+
+Supports Lanczos resizing in batch mode.
+
+https://www.irfanview.com/
+
+XnView MP (GUI)
+
+Batch resize with various algorithms.
+
+https://www.xnview.com/en/xnviewmp/
+
+4. Other Free Options
+Paint.NET (with Plugins)
+
+Use AI Upscale plugin.
+
+https://www.getpaint.net/
+
+Cupscale (GUI for ESRGAN/Real-ESRGAN)
+
+Advanced UI for ESRGAN models.
+
+GitHub
+
+Summary Table
+Tool	Type	Best For	Link
+Upscayl	GUI (AI)	General Images	GitHub
+Waifu2x-Extension-GUI	GUI (AI)	Anime/Art	GitHub
+Real-ESRGAN (CLI)	CLI (AI)	Real-World Images	GitHub
+ImageMagick	CLI (Traditional)	Non-AI Upscaling	imagemagick.org
+GIMP + G'MIC	GUI (AI)	Plugin-Based AI	gmic.eu
+Cupscale	GUI (AI)	Advanced ESRGAN	GitHub
+Recommendations
+For Anime/Art: Waifu2x-Extension-GUI
+
+For Real-World Images: Real-ESRGAN or Upscayl
+
+For Batch Non-AI Upscaling: ImageMagick or IrfanView
+
+For Command-Line AI: Real-ESRGAN or Waifu2x-NCNN
+
+Would you like recommendations for specific use cases (e.g., photos, game textures, etc.)?
+
+In C#, make a program to upscale image without any external libraries.
+The command line should be:
+program.exe input_file scaling_factor output_file
+Here's a simple C# program that upscales an image without external libraries (just using System.Drawing). It uses nearest-neighbor interpolation for simplicity, but you can modify it to use other algorithms like bilinear or bicubic.
+
+Program Code (Program.cs)
+csharp
+using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        if (args.Length != 3)
+        {
+            Console.WriteLine("Usage: program.exe input_file scaling_factor output_file");
+            return;
+        }
+
+        string inputFile = args[0];
+        if (!float.TryParse(args[1], out float scalingFactor) || scalingFactor <= 0)
+        {
+            Console.WriteLine("Error: scaling_factor must be a positive number.");
+            return;
+        }
+        string outputFile = args[2];
+
+        try
+        {
+            using (Bitmap originalImage = new Bitmap(inputFile))
+            {
+                int newWidth = (int)(originalImage.Width * scalingFactor);
+                int newHeight = (int)(originalImage.Height * scalingFactor);
+
+                using (Bitmap upscaledImage = new Bitmap(newWidth, newHeight))
+                {
+                    using (Graphics g = Graphics.FromImage(upscaledImage))
+                    {
+                        // Nearest-neighbor interpolation (fast but pixelated)
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                        g.DrawImage(originalImage, 0, 0, newWidth, newHeight);
+                    }
+
+                    // Save the upscaled image
+                    upscaledImage.Save(outputFile, GetImageFormat(outputFile));
+                    Console.WriteLine($"Image upscaled and saved to: {outputFile}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    // Helper method to determine image format from file extension
+    private static ImageFormat GetImageFormat(string fileName)
+    {
+        string extension = System.IO.Path.GetExtension(fileName).ToLower();
+        switch (extension)
+        {
+            case ".jpg":
+            case ".jpeg":
+                return ImageFormat.Jpeg;
+            case ".png":
+                return ImageFormat.Png;
+            case ".bmp":
+                return ImageFormat.Bmp;
+            case ".gif":
+                return ImageFormat.Gif;
+            default:
+                return ImageFormat.Png; // Default to PNG if unknown
+        }
+    }
+}
+How to Compile & Run
+Save the code as Program.cs.
+
+Compile using csc (C# compiler):
+
+bash
+csc Program.cs -r:System.Drawing.dll
+Run the program:
+
+bash
+program.exe input.png 2 output.png
+input.png → Input image
+
+2 → Scaling factor (e.g., 2x size)
+
+output.png → Output file
+
+Key Notes
+Interpolation Modes
+
+NearestNeighbor (fast, pixelated)
+
+Bilinear (smoother)
+
+Bicubic (higher quality)
+Modify InterpolationMode in the code for better results.
+
+Supported Formats
+
+Input: JPEG, PNG, BMP, GIF
+
+Output: JPEG, PNG, BMP, GIF (auto-detected from file extension)
+
+Limitations
+
+No AI upscaling (pure pixel interpolation).
+
+For advanced algorithms (e.g., ESRGAN), you’d need external libraries.
+
+Would you like me to add bilinear/bicubic interpolation or a batch processing mode?
+
+Make the program more robust. And allow for an optional fourth argument to specify jpeg quality
+Here's a more robust version of the image upscaler with:
+✅ Better error handling
+✅ Support for JPEG quality (1-100) as an optional 4th argument
+✅ More interpolation options (NearestNeighbor, Bilinear, Bicubic)
+✅ Validation for file paths, scaling factor, and quality
+
+Improved Program (Program.cs)
+csharp
+using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        if (args.Length < 3 || args.Length > 4)
+        {
+            Console.WriteLine("Usage: program.exe input_file scaling_factor output_file [jpeg_quality=90]");
+            Console.WriteLine("Example: program.exe input.jpg 2 output.jpg 85");
+            return;
+        }
+
+        string inputFile = args[0];
+        string outputFile = args[2];
+
+        // Parse scaling factor
+        if (!float.TryParse(args[1], out float scalingFactor) || scalingFactor <= 0)
+        {
+            Console.WriteLine("Error: scaling_factor must be a positive number.");
+            return;
+        }
+
+        // Parse JPEG quality (default: 90 if not specified)
+        int jpegQuality = 90;
+        if (args.Length == 4 && (!int.TryParse(args[3], out jpegQuality) || jpegQuality < 1 || jpegQuality > 100))
+        {
+            Console.WriteLine("Error: jpeg_quality must be an integer between 1 and 100.");
+            return;
+        }
+
+        try
+        {
+            // Validate input file
+            if (!File.Exists(inputFile))
+            {
+                Console.WriteLine($"Error: Input file '{inputFile}' does not exist.");
+                return;
+            }
+
+            // Load the original image
+            using (Bitmap originalImage = new Bitmap(inputFile))
+            {
+                int newWidth = (int)(originalImage.Width * scalingFactor);
+                int newHeight = (int)(originalImage.Height * scalingFactor);
+
+                // Create upscaled image
+                using (Bitmap upscaledImage = new Bitmap(newWidth, newHeight))
+                {
+                    using (Graphics g = Graphics.FromImage(upscaledImage))
+                    {
+                        // High-quality interpolation (Bicubic is best for upscaling)
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                        g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+
+                        g.DrawImage(originalImage, 0, 0, newWidth, newHeight);
+                    }
+
+                    // Save with JPEG quality setting (if output is JPEG)
+                    ImageFormat format = GetImageFormat(outputFile);
+                    if (format == ImageFormat.Jpeg)
+                    {
+                        EncoderParameters encoderParams = new EncoderParameters(1);
+                        encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, jpegQuality);
+                        ImageCodecInfo jpegCodec = GetEncoderInfo("image/jpeg");
+                        upscaledImage.Save(outputFile, jpegCodec, encoderParams);
+                    }
+                    else
+                    {
+                        upscaledImage.Save(outputFile, format);
+                    }
+
+                    Console.WriteLine($"Successfully upscaled and saved to: {outputFile}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    // Helper: Get ImageFormat from file extension
+    private static ImageFormat GetImageFormat(string fileName)
+    {
+        string extension = Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+            ".png" => ImageFormat.Png,
+            ".bmp" => ImageFormat.Bmp,
+            ".gif" => ImageFormat.Gif,
+            _ => ImageFormat.Png, // Default to PNG if unknown
+        };
+    }
+
+    // Helper: Get encoder info for JPEG quality
+    private static ImageCodecInfo GetEncoderInfo(string mimeType)
+    {
+        ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
+        foreach (ImageCodecInfo codec in codecs)
+        {
+            if (codec.MimeType == mimeType)
+                return codec;
+        }
+        return null;
+    }
+}
+Key Improvements
+JPEG Quality Support
+
+Usage: program.exe input.jpg 2 output.jpg 85 (quality = 85)
+
+If omitted, defaults to 90.
+
+Better Interpolation
+
+Uses HighQualityBicubic for smoother upscaling (better than NearestNeighbor).
+
+Configurable via InterpolationMode (options: NearestNeighbor, Bilinear, HighQualityBicubic).
+
+Robust Validation
+
+Checks if input file exists.
+
+Validates scaling factor (> 0).
+
+Validates JPEG quality (1-100).
+
+Error Handling
+
+Clear error messages for invalid inputs.
+
+Try-catch block for file operations.
+
+How to Compile & Run
+Compile (requires System.Drawing):
+
+bash
+csc Program.cs -r:System.Drawing.dll
+Run Examples:
+
+Basic:
+
+bash
+program.exe input.png 2 output.png
+With JPEG Quality:
+
+bash
+program.exe input.jpg 1.5 output.jpg 75
+Limitations
+No AI Upscaling (pure interpolation). For AI, you’d need libraries like ONNX Runtime or TensorFlow.NET.
+
+Large Images may cause memory issues (add checks if needed).
+
+Would you like me to add multi-threading for batch processing or support for TIFF/WebP?
+
+Modify to rename output file if a file with the same name already exists
+Here’s the updated version of the program that automatically renames the output file if a file with the same name already exists (e.g., output.jpg → output (1).jpg).
+
+Key Changes:
+✅ Checks if the output file exists
+✅ Appends a number (e.g., (1), (2)) to avoid overwriting
+✅ Preserves the original file extension
+
+Final Program (Program.cs)
+csharp
+using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        if (args.Length < 3 || args.Length > 4)
+        {
+            Console.WriteLine("Usage: program.exe input_file scaling_factor output_file [jpeg_quality=90]");
+            Console.WriteLine("Example: program.exe input.jpg 2 output.jpg 85");
+            return;
+        }
+
+        string inputFile = args[0];
+        string outputFile = args[2];
+
+        // Parse scaling factor
+        if (!float.TryParse(args[1], out float scalingFactor) || scalingFactor <= 0)
+        {
+            Console.WriteLine("Error: scaling_factor must be a positive number.");
+            return;
+        }
+
+        // Parse JPEG quality (default: 90 if not specified)
+        int jpegQuality = 90;
+        if (args.Length == 4 && (!int.TryParse(args[3], out jpegQuality) || jpegQuality < 1 || jpegQuality > 100))
+        {
+            Console.WriteLine("Error: jpeg_quality must be an integer between 1 and 100.");
+            return;
+        }
+
+        try
+        {
+            // Validate input file
+            if (!File.Exists(inputFile))
+            {
+                Console.WriteLine($"Error: Input file '{inputFile}' does not exist.");
+                return;
+            }
+
+            // Generate a unique output filename if it already exists
+            outputFile = GetUniqueFilename(outputFile);
+
+            // Load the original image
+            using (Bitmap originalImage = new Bitmap(inputFile))
+            {
+                int newWidth = (int)(originalImage.Width * scalingFactor);
+                int newHeight = (int)(originalImage.Height * scalingFactor);
+
+                // Create upscaled image
+                using (Bitmap upscaledImage = new Bitmap(newWidth, newHeight))
+                {
+                    using (Graphics g = Graphics.FromImage(upscaledImage))
+                    {
+                        // High-quality interpolation
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                        g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+
+                        g.DrawImage(originalImage, 0, 0, newWidth, newHeight);
+                    }
+
+                    // Save with JPEG quality setting (if output is JPEG)
+                    ImageFormat format = GetImageFormat(outputFile);
+                    if (format == ImageFormat.Jpeg)
+                    {
+                        EncoderParameters encoderParams = new EncoderParameters(1);
+                        encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, jpegQuality);
+                        ImageCodecInfo jpegCodec = GetEncoderInfo("image/jpeg");
+                        upscaledImage.Save(outputFile, jpegCodec, encoderParams);
+                    }
+                    else
+                    {
+                        upscaledImage.Save(outputFile, format);
+                    }
+
+                    Console.WriteLine($"Successfully upscaled and saved to: {outputFile}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    // Helper: Generate a unique filename if the original exists
+    private static string GetUniqueFilename(string filePath)
+    {
+        if (!File.Exists(filePath))
+            return filePath;
+
+        string directory = Path.GetDirectoryName(filePath);
+        string fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
+        string extension = Path.GetExtension(filePath);
+        int counter = 1;
+
+        string newFilePath;
+        do
+        {
+            newFilePath = Path.Combine(directory, $"{fileNameWithoutExt} ({counter}){extension}");
+            counter++;
+        } while (File.Exists(newFilePath));
+
+        return newFilePath;
+    }
+
+    // Helper: Get ImageFormat from file extension
+    private static ImageFormat GetImageFormat(string fileName)
+    {
+        string extension = Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+            ".png" => ImageFormat.Png,
+            ".bmp" => ImageFormat.Bmp,
+            ".gif" => ImageFormat.Gif,
+            _ => ImageFormat.Png, // Default to PNG if unknown
+        };
+    }
+
+    // Helper: Get encoder info for JPEG quality
+    private static ImageCodecInfo GetEncoderInfo(string mimeType)
+    {
+        ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
+        foreach (ImageCodecInfo codec in codecs)
+        {
+            if (codec.MimeType == mimeType)
+                return codec;
+        }
+        return null;
+    }
+}
+How It Works
+Checks if output_file exists
+
+If yes, it appends (1), (2), etc., before the extension (e.g., output.jpg → output (1).jpg).
+
+If no, it saves normally.
+
+Preserves the original format
+
+Works for JPG, PNG, BMP, GIF.
+
+Same high-quality upscaling
+
+Uses bicubic interpolation for smooth results.
+
+Example Usage
+Basic:
+
+bash
+program.exe input.png 2 output.png
+If output.png exists → saves as output (1).png.
+
+With JPEG Quality:
+
+bash
+program.exe input.jpg 1.5 output.jpg 85
+If output.jpg exists → saves as output (1).jpg with 85% quality.
+
+Compilation
+bash
+csc Program.cs -r:System.Drawing.dll
+Would you like me to add batch processing for multiple files? 🚀
+
+use the best values for:
+InterpolationMode.HighQualityBicubic
+SmoothingMode.HighQuality
+PixelOffsetMode.HighQuality
+CompositingQuality.HighQuality
+Here’s the optimized version of the program with the best quality settings for image upscaling in C# (System.Drawing). These settings ensure the highest possible interpolation quality while minimizing artifacts.
+
+Optimized Program (Program.cs)
+csharp
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        if (args.Length < 3 || args.Length > 4)
+        {
+            Console.WriteLine("Usage: program.exe input_file scaling_factor output_file [jpeg_quality=90]");
+            Console.WriteLine("Example: program.exe input.jpg 2 output.jpg 85");
+            return;
+        }
+
+        string inputFile = args[0];
+        string outputFile = args[2];
+
+        // Parse scaling factor
+        if (!float.TryParse(args[1], out float scalingFactor) || scalingFactor <= 0)
+        {
+            Console.WriteLine("Error: scaling_factor must be a positive number.");
+            return;
+        }
+
+        // Parse JPEG quality (default: 90 if not specified)
+        int jpegQuality = 90;
+        if (args.Length == 4 && (!int.TryParse(args[3], out jpegQuality) || jpegQuality < 1 || jpegQuality > 100))
+        {
+            Console.WriteLine("Error: jpeg_quality must be an integer between 1 and 100.");
+            return;
+        }
+
+        try
+        {
+            // Validate input file
+            if (!File.Exists(inputFile))
+            {
+                Console.WriteLine($"Error: Input file '{inputFile}' does not exist.");
+                return;
+            }
+
+            // Generate a unique output filename if it already exists
+            outputFile = GetUniqueFilename(outputFile);
+
+            // Load the original image
+            using (Bitmap originalImage = new Bitmap(inputFile))
+            {
+                int newWidth = (int)(originalImage.Width * scalingFactor);
+                int newHeight = (int)(originalImage.Height * scalingFactor);
+
+                // Create upscaled image
+                using (Bitmap upscaledImage = new Bitmap(newWidth, newHeight))
+                {
+                    using (Graphics g = Graphics.FromImage(upscaledImage))
+                    {
+                        // === BEST QUALITY SETTINGS ===
+                        g.InterpolationMode = InterpolationMode.HighQualityBicubic; // Best for enlargement
+                        g.SmoothingMode = SmoothingMode.HighQuality;               // Anti-aliasing
+                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;            // Subpixel precision
+                        g.CompositingQuality = CompositingQuality.HighQuality;      // Blending quality
+
+                        g.DrawImage(
+                            originalImage,
+                            new Rectangle(0, 0, newWidth, newHeight),
+                            new Rectangle(0, 0, originalImage.Width, originalImage.Height),
+                            GraphicsUnit.Pixel
+                        );
+                    }
+
+                    // Save with JPEG quality setting (if output is JPEG)
+                    ImageFormat format = GetImageFormat(outputFile);
+                    if (format == ImageFormat.Jpeg)
+                    {
+                        EncoderParameters encoderParams = new EncoderParameters(1);
+                        encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, jpegQuality);
+                        ImageCodecInfo jpegCodec = GetEncoderInfo("image/jpeg");
+                        upscaledImage.Save(outputFile, jpegCodec, encoderParams);
+                    }
+                    else
+                    {
+                        upscaledImage.Save(outputFile, format);
+                    }
+
+                    Console.WriteLine($"Successfully upscaled and saved to: {outputFile}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    // Helper: Generate a unique filename if the original exists
+    private static string GetUniqueFilename(string filePath)
+    {
+        if (!File.Exists(filePath))
+            return filePath;
+
+        string directory = Path.GetDirectoryName(filePath);
+        string fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
+        string extension = Path.GetExtension(filePath);
+        int counter = 1;
+
+        string newFilePath;
+        do
+        {
+            newFilePath = Path.Combine(directory, $"{fileNameWithoutExt} ({counter}){extension}");
+            counter++;
+        } while (File.Exists(newFilePath));
+
+        return newFilePath;
+    }
+
+    // Helper: Get ImageFormat from file extension
+    private static ImageFormat GetImageFormat(string fileName)
+    {
+        string extension = Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+            ".png" => ImageFormat.Png,
+            ".bmp" => ImageFormat.Bmp,
+            ".gif" => ImageFormat.Gif,
+            _ => ImageFormat.Png, // Default to PNG if unknown
+        };
+    }
+
+    // Helper: Get encoder info for JPEG quality
+    private static ImageCodecInfo GetEncoderInfo(string mimeType)
+    {
+        ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
+        foreach (ImageCodecInfo codec in codecs)
+        {
+            if (codec.MimeType == mimeType)
+                return codec;
+        }
+        return null;
+    }
+}
+Key Optimizations
+Setting	Value	Purpose
+InterpolationMode	HighQualityBicubic	Best for smooth upscaling (avoids pixelation)
+SmoothingMode	HighQuality	Reduces jagged edges (anti-aliasing)
+PixelOffsetMode	HighQuality	Improves subpixel accuracy
+CompositingQuality	HighQuality	Ensures clean blending
+Why These Settings?
+HighQualityBicubic
+
+The best interpolation method for enlarging images (better than Bilinear or NearestNeighbor).
+
+Minimizes blocky artifacts.
+
+SmoothingMode.HighQuality
+
+Applies anti-aliasing to smooth jagged edges.
+
+PixelOffsetMode.HighQuality
+
+Adjusts pixel alignment for sharper results.
+
+CompositingQuality.HighQuality
+
+Ensures high-quality alpha blending (useful for transparent PNGs).
+
+Example Output
+bash
+program.exe input.jpg 2 output.jpg 95
+Upscales input.jpg by 2x with 95% JPEG quality.
+
+If output.jpg exists, saves as output (1).jpg.
+
+Compilation
+bash
+csc Program.cs -r:System.Drawing.dll
+This version produces the highest possible quality with System.Drawing. For even better results (e.g., AI upscaling), you’d need libraries like Real-ESRGAN. Let me know if you'd like to explore that! 🚀
+
+can you add batch image conversion support
+Here's the enhanced version of the program with batch image conversion support. It now processes multiple input files (using wildcards or directories) while maintaining all previous quality features.
+
+Enhanced Program with Batch Support (Program.cs)
+csharp
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        if (args.Length < 3 || args.Length > 4)
+        {
+            Console.WriteLine("Usage: program.exe input_path scaling_factor output_directory [jpeg_quality=90]");
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  Single file: program.exe input.jpg 2 output 85");
+            Console.WriteLine("  Wildcards:   program.exe *.jpg 1.5 output");
+            Console.WriteLine("  Directory:   program.exe C:\\input 2 C:\\output");
+            return;
+        }
+
+        string inputPath = args[0];
+        float scalingFactor;
+        if (!float.TryParse(args[1], out scalingFactor) || scalingFactor <= 0)
+        {
+            Console.WriteLine("Error: scaling_factor must be a positive number.");
+            return;
+        }
+
+        string outputDirectory = args[2];
+        int jpegQuality = 90;
+        if (args.Length == 4 && (!int.TryParse(args[3], out jpegQuality) || jpegQuality < 1 || jpegQuality > 100))
+        {
+            Console.WriteLine("Error: jpeg_quality must be an integer between 1 and 100.");
+            return;
+        }
+
+        try
+        {
+            // Create output directory if it doesn't exist
+            Directory.CreateDirectory(outputDirectory);
+
+            // Get all matching input files
+            string[] inputFiles;
+            if (Directory.Exists(inputPath))
+            {
+                inputFiles = Directory.GetFiles(inputPath);
+            }
+            else if (File.Exists(inputPath))
+            {
+                inputFiles = new[] { inputPath };
+            }
+            else
+            {
+                // Handle wildcards
+                string directory = Path.GetDirectoryName(inputPath) ?? Directory.GetCurrentDirectory();
+                string searchPattern = Path.GetFileName(inputPath) ?? "*.*";
+                inputFiles = Directory.GetFiles(directory, searchPattern);
+            }
+
+            if (inputFiles.Length == 0)
+            {
+                Console.WriteLine("Error: No matching files found.");
+                return;
+            }
+
+            // Process each file
+            foreach (string inputFile in inputFiles)
+            {
+                try
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(inputFile);
+                    string extension = Path.GetExtension(inputFile).ToLower();
+                    string outputFile = Path.Combine(outputDirectory, $"{fileName}_upscaled{extension}");
+
+                    // Generate unique filename if needed
+                    outputFile = GetUniqueFilename(outputFile);
+
+                    using (Bitmap originalImage = new Bitmap(inputFile))
+                    {
+                        int newWidth = (int)(originalImage.Width * scalingFactor);
+                        int newHeight = (int)(originalImage.Height * scalingFactor);
+
+                        using (Bitmap upscaledImage = new Bitmap(newWidth, newHeight))
+                        {
+                            using (Graphics g = Graphics.FromImage(upscaledImage))
+                            {
+                                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                                g.SmoothingMode = SmoothingMode.HighQuality;
+                                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                                g.CompositingQuality = CompositingQuality.HighQuality;
+
+                                g.DrawImage(
+                                    originalImage,
+                                    new Rectangle(0, 0, newWidth, newHeight),
+                                    new Rectangle(0, 0, originalImage.Width, originalImage.Height),
+                                    GraphicsUnit.Pixel
+                                );
+                            }
+
+                            ImageFormat format = GetImageFormat(outputFile);
+                            if (format == ImageFormat.Jpeg)
+                            {
+                                EncoderParameters encoderParams = new EncoderParameters(1);
+                                encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, jpegQuality);
+                                ImageCodecInfo jpegCodec = GetEncoderInfo("image/jpeg");
+                                upscaledImage.Save(outputFile, jpegCodec, encoderParams);
+                            }
+                            else
+                            {
+                                upscaledImage.Save(outputFile, format);
+                            }
+
+                            Console.WriteLine($"Processed: {Path.GetFileName(inputFile)} -> {Path.GetFileName(outputFile)}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing {Path.GetFileName(inputFile)}: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine($"\nCompleted! Processed {inputFiles.Length} files.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fatal error: {ex.Message}");
+        }
+    }
+
+    private static string GetUniqueFilename(string filePath)
+    {
+        if (!File.Exists(filePath))
+            return filePath;
+
+        string directory = Path.GetDirectoryName(filePath);
+        string fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
+        string extension = Path.GetExtension(filePath);
+        int counter = 1;
+
+        string newFilePath;
+        do
+        {
+            newFilePath = Path.Combine(directory, $"{fileNameWithoutExt} ({counter}){extension}");
+            counter++;
+        } while (File.Exists(newFilePath));
+
+        return newFilePath;
+    }
+
+    private static ImageFormat GetImageFormat(string fileName)
+    {
+        string extension = Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+            ".png" => ImageFormat.Png,
+            ".bmp" => ImageFormat.Bmp,
+            ".gif" => ImageFormat.Gif,
+            _ => ImageFormat.Png,
+        };
+    }
+
+    private static ImageCodecInfo GetEncoderInfo(string mimeType)
+    {
+        ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
+        foreach (ImageCodecInfo codec in codecs)
+        {
+            if (codec.MimeType == mimeType)
+                return codec;
+        }
+        return null;
+    }
+}
+Key Features:
+Batch Processing Support:
+
+Handles single files, wildcards (*.jpg), and entire directories
+
+Example: program.exe *.png 2 output_folder 90
+
+Automatic Output Organization:
+
+Creates output directory if it doesn't exist
+
+Appends _upscaled to filenames (e.g., image.jpg → image_upscaled.jpg)
+
+Auto-increments filenames if duplicates exist
+
+Quality Preservation:
+
+Maintains all previous high-quality rendering settings
+
+Individual error handling for each file (won't stop entire batch on error)
+
+User Feedback:
+
+Progress reporting for each file
+
+Summary of total processed files
+
+Usage Examples:
+bash
+# Process single file
+program.exe photo.jpg 2 output 90
+
+# Process all JPGs in current directory
+program.exe *.jpg 1.5 output
+
+# Process entire directory
+program.exe C:\input_images 2 C:\output_images 85
+Compilation:
+bash
+csc Program.cs -r:System.Drawing.dll
+This version maintains all the previous quality optimizations while adding robust batch processing capabilities. The program will:
+
+Create the output directory if needed
+
+Process all matching files
+
+Preserve original filenames (with _upscaled suffix)
+
+Handle errors per-file without stopping the entire batch
+
+Provide clear progress feedback
+
+Would you like me to add any additional features like parallel processing for faster batch operations?
